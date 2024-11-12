@@ -1,0 +1,57 @@
+```
+#include <Arduino.h>
+#include <Keyboard.h>
+#include <BluetoothSerial.h>
+#include <RF24.h>
+
+const int bluetoothTx = 2;
+const int bluetoothRx = 3;
+const int rfCePin = 7;
+const int rfCsnPin = 8;
+const uint8_t rfChannel = 120;
+const char* bluetoothDeviceName = "TecladoBluetooth";
+
+BluetoothSerial SerialBT;
+RF24 radio(rfCePin, rfCsnPin);
+
+void setup() {
+  Serial.begin(9600);
+  Keyboard.begin();
+  SerialBT.begin(bluetoothDeviceName);
+  radio.begin();
+  radio.setChannel(rfChannel);
+  radio.setAutoAck(true);
+  radio.enableAckPayload();
+  radio.openReadingPipe(1, 0x12345678);
+  radio.startListening();
+}
+
+void loop() {
+  if (SerialBT.available()) {
+    uint8_t data = SerialBT.read();
+    processKey(data);
+  }
+  
+  if (radio.available()) {
+    uint8_t data;
+    radio.read(&data, sizeof(data));
+    processKey(data);
+  }
+  
+  if (Serial.available()) {
+    uint8_t data = Serial.read();
+    processKey(data);
+  }
+}
+
+void processKey(uint8_t data) {
+  switch (data) {
+    case 0x01: Keyboard.press(KEY_LEFT_ARROW); break;
+    case 0x02: Keyboard.press(KEY_RIGHT_ARROW); break;
+    case 0x03: Keyboard.press(KEY_UP_ARROW); break;
+    case 0x04: Keyboard.press(KEY_DOWN_ARROW); break;
+  }
+  delay(50);
+  Keyboard.releaseAll();
+}
+```
